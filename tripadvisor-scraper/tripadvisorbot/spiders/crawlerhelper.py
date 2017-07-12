@@ -13,6 +13,7 @@ def clean_parsed_string(string):
 			ascii_string = unicodedata.normalize('NFKD', ascii_string).encode('ascii', 'ignore')
 		return str(ascii_string)
 	else:
+                # print '#*#*#*#*#*'*50
 		return None
 
 def get_parsed_string(selector, xpath):
@@ -21,6 +22,7 @@ def get_parsed_string(selector, xpath):
 	if len(extracted_list) > 0:
 		raw_string = extracted_list[0].strip()
 		if raw_string is not None:
+                        # print '############################333', len(extracted_list), raw_string
 			return_string = htmlparser.unescape(raw_string)
 	return return_string
 

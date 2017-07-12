@@ -11,12 +11,20 @@ class Website(Item):
 # TripAdvisor items
 class TripAdvisorItem(Item):
 
-	url = Field()
+        url = Field()
 	name = Field()
-	address = Field()
-	avg_stars = Field()
-	photos = Field()
-	reviews = Field()
+	# address = Field()
+        avg_stars = Field()
+	# photos = Field()
+	# reviews = Field()
+        qas = Field()
+
+class TripAdvisorQuestionItem(Item):
+
+        question = Field()
+	url = Field()
+	# answers = Field()
+
 
 class TripAdvisorAddressItem(Item):
 

@@ -33,21 +33,25 @@ class TripAdvisorRestaurantBaseSpider(BaseSpider):
 		sel = Selector(response)
 		snode_restaurants = sel.xpath('//div[@id="EATERY_SEARCH_RESULTS"]/div[starts-with(@class, "listing")]')
 		
+                print '#$##########################'
+                print len(snode_restaurants)
 		# Build item index.
 		for snode_restaurant in snode_restaurants:
 
 			tripadvisor_item = TripAdvisorItem()
 
-			tripadvisor_item['url'] = self.base_uri + clean_parsed_string(get_parsed_string(snode_restaurant, 'div[@class="quality easyClear"]/span/a[@class="property_title "]/@href'))
-			tripadvisor_item['name'] = clean_parsed_string(get_parsed_string(snode_restaurant, 'div[@class="quality easyClear"]/span/a[@class="property_title "]/text()'))
+                        tripadvisor_item['url'] = self.base_uri + clean_parsed_string(get_parsed_string(snode_restaurant, './/h3[@class="title"]/a/@href'))
+			tripadvisor_item['name'] = clean_parsed_string(get_parsed_string(snode_restaurant, './/h3[@class="title"]/a/text()'))
 			
+                        # print  tripadvisor_item['name'] 
 			# Cleaning string and taking only the first part before whitespace.
-			snode_restaurant_item_avg_stars = clean_parsed_string(get_parsed_string(snode_restaurant, 'div[@class="wrap"]/div[@class="entry wrap"]/div[@class="description"]/div[@class="wrap"]/div[@class="rs rating"]/span[starts-with(@class, "rate")]/img[@class="sprite-ratings"]/@alt'))
-			tripadvisor_item['avg_stars'] = re.match(r'(\S+)', snode_restaurant_item_avg_stars).group()
+                        snode_restaurant_item_avg_stars = clean_parsed_string(get_parsed_string(snode_restaurant, './/div[starts-with(@class,"rating")]/span/@alt'))#div[@class="wrap"]/div[@class="entry wrap"]/div[@class="description"]/div[@class="wrap"]/div[@class="rs rating"]/span[starts-with(@class, "rate")]/img[@class="sprite-ratings"]/@alt'))
+                        # tripadvisor_item['avg_stars'] = re.match(r'(\d+) of*', snode_restaurant_item_avg_stars).group()
+                        tripadvisor_item['avg_stars'] = snode_restaurant_item_avg_stars.split(' ')[0]
 
 			# Popolate reviews and address for current item.
-			yield Request(url=tripadvisor_item['url'], meta={'tripadvisor_item': tripadvisor_item}, callback=self.parse_search_page)
-
+                        yield Request(url=tripadvisor_item['url'], meta={'tripadvisor_item': tripadvisor_item}, callback=self.parse_search_page)
+                        # yield tripadvisor_item
 			tripadvisor_items.append(tripadvisor_item)
 		
 
@@ -57,43 +61,55 @@ class TripAdvisorRestaurantBaseSpider(BaseSpider):
 		tripadvisor_item = response.meta['tripadvisor_item']
 		sel = Selector(response)
 
+		tripadvisor_item['qas'] = []
+                answers_tab = sel.xpath('//div[@data-tab="TABS_ANSWERS"]')
+                snode_questions = answers_tab.xpath('.//div[starts-with(@class,"question")]')
+                for snode_q in snode_questions:
+                    tripadvisor_question_item = TripAdvisorQuestionItem()
+                    # tripadvisor_question_item['url'] = clean_parsed_string(get_parsed_string(snode_q,'.//div[contains(@class,"is-9")]/a[@class="question_text_link"]/@href'))
+                    tripadvisor_question_item['url'] = clean_parsed_string(get_parsed_string(snode_q,'.//a[@class="question_text_link"]/@href'))
+                    tripadvisor_question_item['question'] = clean_parsed_string(get_parsed_string(snode_q,'.//a[@class="question_text_link"]/span/text()'))
+                    if tripadvisor_question_item['question'] is None:
+                        continue
+                    tripadvisor_item['qas'].append(tripadvisor_question_item)
+                    # yield tripadvisor_question_item
+                print 'QUESTION_LEN', len(tripadvisor_item['qas'])
+                yield tripadvisor_item
 
 		# TripAdvisor address for item.
-		snode_address = sel.xpath('//div[@class="wrap infoBox"]')
-		tripadvisor_address_item = TripAdvisorAddressItem()
+		# snode_address = sel.xpath('//div[@class="wrap infoBox"]')
+		# tripadvisor_address_item = TripAdvisorAddressItem()
 
-		tripadvisor_address_item['street'] = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="street-address"]/text()'))
+		# tripadvisor_address_item['street'] = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="street-address"]/text()'))
 
-		snode_address_postal_code = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:postal-code"]/text()'))
-		if snode_address_postal_code:
-			tripadvisor_address_item['postal_code'] = snode_address_postal_code
+		# snode_address_postal_code = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:postal-code"]/text()'))
+		# if snode_address_postal_code:
+			# tripadvisor_address_item['postal_code'] = snode_address_postal_code
 
-		snode_address_locality = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:locality"]/text()'))
-		if snode_address_locality:
-			tripadvisor_address_item['locality'] = snode_address_locality
+		# snode_address_locality = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:locality"]/text()'))
+		# if snode_address_locality:
+			# tripadvisor_address_item['locality'] = snode_address_locality
 
-		tripadvisor_address_item['country'] = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:region"]/text()'))
+		# tripadvisor_address_item['country'] = clean_parsed_string(get_parsed_string(snode_address, 'address/span/span[@class="format_address"]/span[@class="locality"]/span[@property="v:region"]/text()'))
 		
-		tripadvisor_item['address'] = tripadvisor_address_item
+		# tripadvisor_item['address'] = tripadvisor_address_item
 
 
-		# TripAdvisor photos for item.
-		tripadvisor_item['photos'] = []
-		snode_main_photo = sel.xpath('//div[@class="photoGrid photoBx"]')
+		## TripAdvisor photos for item.
+		# tripadvisor_item['photos'] = []
+		# snode_main_photo = sel.xpath('//div[@class="photoGrid photoBx"]')
 
-		snode_main_photo_url = clean_parsed_string(get_parsed_string(snode_main_photo, 'div[starts-with(@class, "photo ")]/a/@href'))
-		if snode_main_photo_url:
-			yield Request(url=self.base_uri + snode_main_photo_url, meta={'tripadvisor_item': tripadvisor_item}, callback=self.parse_fetch_photo)
+		# snode_main_photo_url = clean_parsed_string(get_parsed_string(snode_main_photo, 'div[starts-with(@class, "photo ")]/a/@href'))
+		# if snode_main_photo_url:
+			# yield Request(url=self.base_uri + snode_main_photo_url, meta={'tripadvisor_item': tripadvisor_item}, callback=self.parse_fetch_photo)
 
-
-		tripadvisor_item['reviews'] = []
 
 		# The default page contains the reviews but the reviews are shrink and need to click 'More' to view the complete content.
 		# An alternate way is to click one of the reviews in the page to open the expanded reviews display page.
 		# We're using this last solution to avoid AJAX here.
-		expanded_review_url = clean_parsed_string(get_parsed_string(sel, '//div[contains(@class, "basic_review")]//a/@href'))
-		if expanded_review_url:
-			yield Request(url=self.base_uri + expanded_review_url, meta={'tripadvisor_item': tripadvisor_item, 'counter_page_review' : 0}, callback=self.parse_fetch_review)
+		# expanded_review_url = clean_parsed_string(get_parsed_string(sel, '//div[contains(@class, "basic_review")]//a/@href'))
+		# if expanded_review_url:
+			# yield Request(url=self.base_uri + expanded_review_url, meta={'tripadvisor_item': tripadvisor_item, 'counter_page_review' : 0}, callback=self.parse_fetch_review)
 
 
 	# If the page is not a basic review page, we can proceed with parsing the expanded reviews.
